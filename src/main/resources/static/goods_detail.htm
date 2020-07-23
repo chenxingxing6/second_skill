@@ -1,0 +1,289 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+    <title>商品详情</title>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+    <!-- jquery -->
+    <script type="text/javascript" src="/js/jquery.min.js"></script>
+    <!-- bootstrap -->
+    <link rel="stylesheet" type="text/css" href="/bootstrap/css/bootstrap.min.css"/>
+    <link rel="stylesheet" type="text/css" href="/css/detail.css"/>
+
+</head>
+<body>
+<div style="text-align: center;">
+    <h2>高并发秒杀测试</h2>
+</div>
+<div class="goods">
+    <div class="containers">
+        <div class="goods_view">
+            <img id="goodsImg" width="400"/>
+        </div>
+        <div class="goods_info">
+            <h2 id="goodsName"></h2>
+            <p class="title" id="goodsTitle"></p>
+            <p>
+                <span class="price1" id="seckillPrice"></span>
+                <del><span class="price2" id="goodsPrice"></span></del>
+            </p>
+            <div class="seckill_data">
+                <div>
+                    <span>秒杀开始时间</span>
+                    <p id="startDate"></p>
+                </div>
+                <div>
+                    <span>秒杀结束时间</span>
+                    <p id="endDate"></p>
+                </div>
+            </div>
+            <div class="seckillStatus">
+                <input type="hidden" id="remainSeconds"/>
+                <span id="miaoshaTip"></span>
+            </div>
+            <div class="count">
+                <span>库存数量：</span>
+                <span id="stockCount"></span>
+            </div>
+
+            <button class="btn btn-primary btn-block" type="button" id="hotButton" onclick="hotStock()">库存预热</button>
+            <button class="btn btn-primary btn-block" type="button" id="buyButton" onclick="getSeckillPath()">模拟1000个用户秒杀</button>
+            <input type="hidden" name="goodsId" id="goodsId"/>
+        </div>
+    </div>
+    <div style="text-align: center; display: block">
+        <hr>
+        <h3>中奖名单</h3>
+        <div id="userList"></div>
+    </div>
+</div>
+
+</body>
+<script type="text/javascript" src="/bootstrap/js/bootstrap.min.js"></script>
+<!-- jquery-validator -->
+<script type="text/javascript" src="/jquery-validation/jquery.validate.min.js"></script>
+<script type="text/javascript" src="/jquery-validation/localization/messages_zh.min.js"></script>
+<!-- layer -->
+<script type="text/javascript" src="/layer/layer.js"></script>
+<!-- md5.js -->
+<script type="text/javascript" src="/js/md5.min.js"></script>
+<!-- common.js -->
+<script type="text/javascript" src="/js/common.js"></script>
+<script>
+    var socket;
+    function openSocket() {
+        if(typeof(WebSocket) == "undefined") {
+            console.log("您的浏览器不支持WebSocket");
+        }else{
+            console.log("您的浏览器支持WebSocket");
+            //实现化WebSocket对象，指定要连接的服务器地址与端口  建立连接
+            var userId = "1410080408";
+            var socketUrl="ws://localhost:8888/websocket/"+userId;
+            console.log(socketUrl);
+            if(socket!=null){
+                socket.close();
+                socket=null;
+            }
+            socket = new WebSocket(socketUrl);
+            //打开事件
+            socket.onopen = function() {
+                console.log("websocket已打开");
+            };
+            //获得消息事件
+            socket.onmessage = function(msg) {
+                var serverMsg = "收到服务端信息：" + msg.data;
+                console.log(serverMsg);
+                $("#userList").append("<div>"+msg.data+"</div>");
+            };
+            //关闭事件
+            socket.onclose = function() {
+                console.log("websocket已关闭");
+            };
+            //发生了错误事件
+            socket.onerror = function() {
+                console.log("websocket发生了错误");
+            }
+        }
+    }
+    function sendMessage() {
+        if(typeof(WebSocket) == "undefined") {
+            console.log("您的浏览器不支持WebSocket");
+        }else {
+            var toUserId = "1410080408";
+            var contentText = "msg test.....";
+            var msg = '{"toUserId":"'+toUserId+'","contentText":"'+contentText+'"}';
+            console.log(msg);
+            socket.send(msg);
+        }
+    }
+    function hotStock() {
+        var goodsId = $("#goodsId").val();
+        $.ajax({
+            url:"/seckill/hot",
+            type:"GET",
+            data:{
+                goodsId:goodsId
+            },
+            success:function(data){
+                if(data.code == 0){
+                    layer.msg(data.data);
+                }else{
+                    layer.msg(data.msg);
+                }
+            },
+            error:function(){
+                layer.msg("客户端请求有误");
+            }
+        });
+    }
+    function getSeckillPath(){
+        var goodsId = $("#goodsId").val();
+        $.ajax({
+            url:"/seckill/path",
+            type:"GET",
+            data:{
+                goodsId:goodsId
+            },
+            success:function(data){
+                if(data.code == 0){
+                    var path = data.data;
+                    openSocket();
+                    doMiaosha(path);
+                    //$("#buyButton").attr("disabled", true);
+                    $("#buyButton").attr("color","red");
+                }else{
+                    layer.msg(data.msg);
+                }
+            },
+            error:function(){
+                layer.msg("客户端请求有误");
+            }
+        });
+    }
+    function getMiaoshaResult(goodsId) {
+        g_showLoading();
+        $.ajax({
+            url: "/seckill/result",
+            type: "GET",
+            data: {
+                goodsId: $("#goodsId").val()
+            },
+            success: function (data) {
+                if (data.code == 0) {
+                    var result = data.data;
+                    // if (result < 0) {
+                    //     layer.msg("对不起，秒杀失败");
+                    // } else if (result == 0) {//继续轮询
+                    //     setTimeout(function () {
+                    //         getMiaoshaResult(goodsId);
+                    //     }, 200);
+                    // } else {
+                    //     layer.confirm("恭喜你，秒杀成功！查看订单？", {btn: ["确定", "取消"]},
+                    //         function () {
+                    //             window.location.href = "/order_detail.htm?orderId=" + result;
+                    //         },
+                    //         function () {
+                    //             layer.closeAll();
+                    //         });
+                    // }
+                } else {
+                    layer.msg(data.msg);
+                }
+            },
+            error: function () {
+                layer.msg("客户端请求有误");
+            }
+        });
+    }
+
+    function doMiaosha(path) {
+        $.ajax({
+                url: "/seckill/"+path+"/seckill",
+                type: "POST",
+                data: {
+                    goodsId: $("#goodsId").val(),
+                },
+                success: function (data) {
+                    if (data.code == 0) {
+                        layer.closeAll();
+                    }else {
+                        layer.msg(data.msg);
+                    }
+                },
+                error: function () {
+                    layer.msg("客户端请求有误");
+                }
+            }
+        )
+        ;
+
+    }
+
+    function render(detail) {
+        var miaoshaStatus = detail.miaoshaStatus;
+        var remainSeconds = detail.remainSeconds;
+        var goods = detail.goods;
+        var user = detail.user;
+        if (user) {
+            $("#userTip").hide();
+        }
+        $("#goodsName").text(goods.goodsName);
+        $("#goodsImg").attr("src", goods.goodsImg);
+        $("#goodsTitle").text(goods.goodsTitle);
+        $("#startDate").text(new Date(goods.startDate).format("yyyy-MM-dd hh:mm:ss"));
+        $("#endDate").text(new Date(goods.endDate).format("yyyy-MM-dd hh:mm:ss"));
+        $("#remainSeconds").val(remainSeconds);
+        $("#goodsId").val(goods.id);
+        $("#goodsPrice").text(goods.goodsPrice);
+        $("#seckillPrice").text(goods.seckillPrice);
+        $("#stockCount").text(goods.stockCount);
+        countDown();
+    }
+
+    $(function () {
+        //countDown();
+        getDetail();
+    });
+
+    function getDetail() {
+        var goodsId = g_getQueryString("goodsId");
+        $.ajax({
+            url: "/goods/detail/" + goodsId,
+            type: "GET",
+            success: function (data) {
+                if (data.code == 0) {
+                    render(data.data);
+                } else {
+                    layer.msg(data.msg);
+                }
+            },
+            error: function () {
+                layer.msg("客户端请求有误");
+            }
+        });
+    }
+
+    function countDown() {
+        var remainSeconds = $("#remainSeconds").val();
+        var timeout;
+        if (remainSeconds > 0) {//秒杀还没开始，倒计时
+            $("#buyButton").attr("disabled", true);
+            $("#miaoshaTip").html("秒杀倒计时：" + remainSeconds + "秒");
+            timeout = setTimeout(function () {
+                $("#countDown").text(remainSeconds - 1);
+                $("#remainSeconds").val(remainSeconds - 1);
+                countDown();
+            }, 1000);
+        } else if (remainSeconds == 0) {//秒杀进行中
+            $("#buyButton").attr("disabled", false);
+            if (timeout) {
+                clearTimeout(timeout);
+            }
+            $("#miaoshaTip").html("秒杀进行中");
+        } else {//秒杀已经结束
+            $("#buyButton").attr("disabled", true);
+            $("#miaoshaTip").html("秒杀已经结束");
+        }
+    }
+
+</script>
+</html>
