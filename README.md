@@ -1,10 +1,10 @@
 ## 高并发秒杀系统：SpringBoot+Mybatis+Redis+RocketMq 
 
 和Mater更新内容说明
->1.秒杀地址隐藏分析
->2.demo解决超卖实现方案   
->3.demo实现分布式3种方案
->4.整合sentinel进行限流
+>1.秒杀地址隐藏分析    
+>2.demo解决超卖实现方案       
+>3.demo实现分布式3种方案    
+>4.整合sentinel进行限流   
 
 ---
 ### 一、秒杀地址隐藏分析
