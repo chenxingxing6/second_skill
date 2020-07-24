@@ -3,7 +3,7 @@
 和Mater更新内容说明
 >1.秒杀地址隐藏分析    
 >2.demo解决超卖实现方案       
->3.demo实现分布式3种方案    
+>3.demo实现分布式锁3种方案    
 >4.整合sentinel进行限流   
 
 ---
@@ -55,3 +55,11 @@ update goods set num = num - 1, version = version + 1 WHERE id= 1001 AND num > 0
 总结：第二种CAS是失败重试，并无加锁。应该比第一种加锁效率要高很多。类似于Java中的Synchronize和CAS。
 
 ---
+### 三、实现分布式锁3种方案
+###### 3.1 Mysql 
+
+###### 3.2 Redis
+
+###### 3.3 Zk
+
+
