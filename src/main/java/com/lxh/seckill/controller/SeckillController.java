@@ -28,12 +28,6 @@ import javax.servlet.http.HttpServletRequest;
 import java.util.List;
 import java.util.concurrent.*;
 
-/**
- * Created by: HuangFuBin
- * Date: 2018/7/15
- * Time: 23:55
- * Such description:
- */
 @Controller
 @RequestMapping("seckill")
 public class SeckillController implements InitializingBean {
@@ -69,40 +63,21 @@ public class SeckillController implements InitializingBean {
         }
     }
 
-    @RequestMapping("/seckill2")
-    public String list2(Model model,
-                        @RequestParam("goodsId") long goodsId, HttpServletRequest request) {
 
-        String loginToken = CookieUtil.readLoginToken(request);
-        User user = redisService.get(UserKey.getByName, loginToken, User.class);
-        model.addAttribute("user", user);
-        if (user == null) {
-            return "login";
-        }
-        //判断库存
-        GoodsBo goods = seckillGoodsService.getseckillGoodsBoByGoodsId(goodsId);
-        int stock = goods.getStockCount();
-        if (stock <= 0) {
-            model.addAttribute("errmsg", CodeMsg.MIAO_SHA_OVER.getMsg());
-            return "miaosha_fail";
-        }
-        //判断是否已经秒杀到了
-        SeckillOrder order = seckillOrderService.getSeckillOrderByUserIdGoodsId(user.getId(), goodsId);
-        if (order != null) {
-            model.addAttribute("errmsg", CodeMsg.REPEATE_MIAOSHA.getMsg());
-            return "miaosha_fail";
-        }
-        //减库存 下订单 写入秒杀订单
-        OrderInfo orderInfo = seckillOrderService.insert(user, goods);
-        model.addAttribute("orderInfo", orderInfo);
-        model.addAttribute("goods", goods);
-        return "order_detail";
-    }
-
+    /**
+     * 秒杀访问地址
+     * @param model
+     * @param goodsId
+     * @param path
+     * @param request
+     * @return
+     */
+    @AccessLimit(seconds=5, maxCount=2, needLogin=true)
     @RequestMapping(value = "/{path}/seckill", method = RequestMethod.POST)
     @ResponseBody
     public Result<Integer> list(Model model,
                                 @RequestParam("goodsId") long goodsId,
+                                @RequestParam("type") Integer type,
                                 @PathVariable("path") String path,
                                 HttpServletRequest request) {
         String loginToken = CookieUtil.readLoginToken(request);
@@ -110,32 +85,43 @@ public class SeckillController implements InitializingBean {
         if (user == null) {
             return Result.error(CodeMsg.USER_NO_LOGIN);
         }
-        //验证path
+        // 验证path
         boolean check = seckillOrderService.checkPath(user, goodsId, path);
         if (!check) {
             return Result.error(CodeMsg.REQUEST_ILLEGAL);
         }
-        long startTime = System.currentTimeMillis();
-        System.out.println("秒杀开始时间："+startTime);
-        List<User> users = userService.selectAll();
-        int size = users.size();
-        ExecutorService executorService = Executors.newCachedThreadPool();
-        CyclicBarrier barrier = new CyclicBarrier(size);
-        for (int i = 0; i < size; i++) {
-            int finalI = i;
-            int finalI1 = i;
-            executorService.execute(()->{
-                try {
-                    barrier.await();
-                    // 1000个人模拟高并发
-                    businessDoHandler(users.get(finalI), goodsId);
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
-            });
+        // 模拟1000人高并发
+        if (type == 1){
+            long startTime = System.currentTimeMillis();
+            System.out.println("秒杀开始时间："+startTime);
+            List<User> users = userService.selectAll();
+            int size = users.size();
+            ExecutorService executorService = Executors.newCachedThreadPool();
+            CyclicBarrier barrier = new CyclicBarrier(size);
+            for (int i = 0; i < size; i++) {
+                int finalI = i;
+                int finalI1 = i;
+                executorService.execute(()->{
+                    try {
+                        barrier.await();
+                        // 1000个人模拟高并发
+                        businessDoHandler(users.get(finalI), goodsId);
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+                });
+            }
+            System.out.println("秒杀结束时间："+ (System.currentTimeMillis() - startTime));
         }
-        System.out.println("秒杀结束时间："+ (System.currentTimeMillis() - startTime));
-        return Result.success(0);//排队中
+        // 模拟一个人
+        else {
+            long startTime = System.currentTimeMillis();
+            System.out.println("秒杀开始时间："+startTime);
+            businessDoHandler(user, goodsId);
+            System.out.println("秒杀结束时间："+ (System.currentTimeMillis() - startTime));
+        }
+        // 排队中
+        return Result.success(0);
     }
 
     private void businessDoHandler(User user, long goodId){
@@ -184,6 +170,14 @@ public class SeckillController implements InitializingBean {
         return Result.success(result);
     }
 
+
+    /**
+     * 获取秒杀地址
+     * @param request
+     * @param user
+     * @param goodsId
+     * @return
+     */
     @AccessLimit(seconds=5, maxCount=5, needLogin=true)
     @RequestMapping(value = "/path", method = RequestMethod.GET)
     @ResponseBody
@@ -198,7 +192,12 @@ public class SeckillController implements InitializingBean {
         return Result.success(path);
     }
 
-    // 预热库存
+    /**
+     * 预热库存
+     * @param goodsId
+     * @param request
+     * @return
+     */
     @RequestMapping(value = "/hot", method = RequestMethod.GET)
     @ResponseBody
     public Result<String> hotResult(@RequestParam("goodsId") long goodsId, HttpServletRequest request) {

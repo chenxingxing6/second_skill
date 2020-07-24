@@ -46,7 +46,8 @@
             </div>
 
             <button class="btn btn-primary btn-block" type="button" id="hotButton" onclick="hotStock()">库存预热</button>
-            <button class="btn btn-primary btn-block" type="button" id="buyButton" onclick="getSeckillPath()">模拟1000个用户秒杀</button>
+            <button class="btn btn-primary btn-block" type="button" id="buyButton" onclick="getSeckillPath(1)">模拟1000个用户秒杀</button>
+            <button class="btn btn-primary btn-block" type="button" id="oneBuyButton" onclick="getSeckillPath(0)">模拟1个用户秒杀，多次点击进行限流</button>
             <input type="hidden" name="goodsId" id="goodsId"/>
         </div>
     </div>
@@ -135,7 +136,7 @@
             }
         });
     }
-    function getSeckillPath(){
+    function getSeckillPath(type){
         var goodsId = $("#goodsId").val();
         $.ajax({
             url:"/seckill/path",
@@ -147,7 +148,7 @@
                 if(data.code == 0){
                     var path = data.data;
                     openSocket();
-                    doMiaosha(path);
+                    doMiaosha(path, type);
                     //$("#buyButton").attr("disabled", true);
                     $("#buyButton").attr("color","red");
                 }else{
@@ -195,12 +196,13 @@
         });
     }
 
-    function doMiaosha(path) {
+    function doMiaosha(path, type) {
         $.ajax({
                 url: "/seckill/"+path+"/seckill",
                 type: "POST",
                 data: {
                     goodsId: $("#goodsId").val(),
+                    type: type
                 },
                 success: function (data) {
                     if (data.code == 0) {

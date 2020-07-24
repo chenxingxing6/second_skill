@@ -96,7 +96,7 @@ public class AuthorityInterceptor implements HandlerInterceptor {
         }
         AccessKey ak = AccessKey.withExpire;
         Integer count = redisService.get(ak, key, Integer.class);
-        if(count  == null) {
+        if(count == null) {
             redisService.set(ak, key, 1, seconds);
         }else if(count < maxCount) {
             redisService.incr(ak, key);

@@ -1,6 +1,6 @@
-### 高并发秒杀系统：SpringBoot+Mybatis+Redis+RocketMq 
+## 高并发秒杀系统：SpringBoot+Mybatis+Redis+RocketMq 
 
-感谢这位博主（基于上面进行优化）：https://github.com/hfbin/Seckill   
+感谢这位博主（基于他上面进行优化）：https://github.com/hfbin/Seckill   
 
 ![秒杀](https://upload-images.jianshu.io/upload_images/13864900-625d2ae682866ae5.jpg)
 
@@ -8,7 +8,7 @@
 ![系统架构图](https://upload-images.jianshu.io/upload_images/13864900-366352040a8b7d43.png)
 
 ---
-### 项目启动说明
+### 一、项目启动说明
 > 1、启动前，进行相关redis、mysql、rocketMq地址   
 2、登录地址：http://localhost:8888/page/login      
 3、商品秒杀列表地址：http://localhost:8888/goods/list   
@@ -18,11 +18,11 @@ PS：测试时需要修改秒杀活动时间seckill_goods表开始和结束时�
    
 
 ---
-### 模拟高并发
+### 二、模拟高并发
 1、数据库共有一千个用户左右（手机号：从18077200000~18077200998 密码为：123456）    
 2、使用CyclicBarrier模拟高并发，1000个用户秒杀某个商品  
-3、读：Redis
-4、写：RocketMq
+3、读：Redis    
+4、写：RocketMq   
 
 ```html
 ExecutorService executorService = Executors.newCachedThreadPool();
@@ -43,14 +43,15 @@ ExecutorService executorService = Executors.newCachedThreadPool();
 ```
 
 ---
-### 技术实现
-1、页面缓存、商品详情静态化、订单静态化 
+### 三、技术实现
+1、页面缓存、商品详情静态化、订单静态化(生成html放缓存里面)      
 2、消息队列RocketMq进行流量肖峰     
-4、接口限流防刷   
-5、解决超卖问题   
+3、解决超卖问题 (文末有提3种方式，本应用用redis预减库存实现)       
+4、接口限流防刷（Redis,Guava）     
+
 
 ---
-### 页面截图
+### 四、页面截图
 登录页
 ![登陆](https://upload-images.jianshu.io/upload_images/13864900-5bdb1820affb779c.png)
 
@@ -191,4 +192,37 @@ ExecutorService executorService = Executors.newCachedThreadPool();
 订单详情页
 ![订单详情页](https://upload-images.jianshu.io/upload_images/13864900-703c5e0ad3f04ec4.png)
 
+
+限流测试
+![进行限流](https://upload-images.jianshu.io/upload_images/13864900-c36f8ff9b1a076ca.png)
+
+
 ---
+### 五、解决超卖实现的3种方式
+##### 5.1 Mysql排他锁  
+```sql
+update goods set num = num - 1 WHERE id = 1001 and num > 0
+```
+
+排他锁又称为写锁，简称X锁，顾名思义，排他锁就是不能与其他所并存，如一个事务获取了一个数据行的排
+他锁，其他事务就不能再获取该行的其他锁，包括共享锁和排他锁，但是获取排他锁的事务是可以对数据就
+行读取和修改。就是类似于我在执行update操作的时候，这一行是一个事务(默认加了排他锁)。这一行不能
+被任何其他线程修改和读写。
+
+
+##### 5.2 乐观锁版本控制
+```sql
+select version from goods WHERE id= 1001
+update goods set num = num - 1, version = version + 1 WHERE id= 1001 AND num > 0 AND version = @version(上面查到的version);
+```   
+这种方式采用了版本号的方式，其实也就是CAS的原理。
+
+ 
+##### 5.3 Redis单线程预减库存 
+利用redis的单线程预减库存。比如商品有100件。那么我在redis存储一个k,v。例如 <gs1001, 100>   
+每一个用户线程进来，key值就减1，等减到0的时候，全部拒绝剩下的请求。   
+那么也就是只有100个线程会进入到后续操作。所以一定不会出现超卖的现象。
+
+
+总结：第二种CAS是失败重试，并无加锁。应该比第一种加锁效率要高很多。类似于Java中的Synchronize和CAS。
+

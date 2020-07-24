@@ -20,12 +20,6 @@ import org.springframework.web.bind.annotation.ResponseBody;
 
 import javax.servlet.http.HttpServletRequest;
 
-/**
- * Created by: HuangFuBin
- * Date: 2018/7/19
- * Time: 0:56
- * Such description:
- */
 @Controller
 @RequestMapping("/order")
 public class SeckillOrderController {
