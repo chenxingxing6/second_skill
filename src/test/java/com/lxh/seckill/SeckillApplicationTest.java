@@ -17,7 +17,7 @@ import java.util.List;
 @Slf4j
 @RunWith(SpringRunner.class)
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.DEFINED_PORT)
-public class SeckillApplicationTests {
+public class SeckillApplicationTest {
 	@Autowired
 	DataSource dataSource;
 	@Autowired
@@ -35,7 +35,6 @@ public class SeckillApplicationTests {
 	@Test
 	public void test01(){
 		List<GoodsBo> goodsBos = goodsMapper.selectAllGoodes();
-
 		for (GoodsBo goodsBo : goodsBos){
 			log.info(goodsBo+"");
 		}
