@@ -1,7 +1,7 @@
 ### 高并发秒杀系统：SpringBoot+Mybatis+Redis+RocketMq 
 
 感谢这位博主（基于上面进行优化）：https://github.com/hfbin/Seckill   
-![秒杀](img/title.jpg)
+![秒杀](https://upload-images.jianshu.io/upload_images/13864900-625d2ae682866ae5.jpg)
 
 ---
 ![系统架构图](img/system.png)
@@ -16,7 +16,7 @@
 ---
 
 ### 模拟高并发
-1、数据库共有一千个用户左右（手机号：从18077200000~18077200998 密码为：123456），为压测准备的。
+1、数据库共有一千个用户左右（手机号：从18077200000~18077200998 密码为：123456）    
 2、使用CyclicBarrier模拟高并发，1000个用户秒杀某个商品  
 3、读：Redis
 4、写：RocketMq
