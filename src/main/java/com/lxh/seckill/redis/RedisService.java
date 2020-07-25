@@ -35,6 +35,19 @@ public class RedisService {
 		 }
 	}
 
+	public <T> T get(String key,  Class<T> clazz) {
+		Jedis jedis = null;
+		try {
+			jedis =  jedisPool.getResource();
+			//生成真正的key
+			String  str = jedis.get(key);
+			T t =  stringToBean(str, clazz);
+			return t;
+		}finally {
+			returnToPool(jedis);
+		}
+	}
+
 	public  Long expice(KeyPrefix prefix,String key,int exTime){
 		Jedis jedis = null;
 		Long result = null;
@@ -107,6 +120,20 @@ public class RedisService {
 			returnToPool(jedis);
 		}
 	}
+
+	public Long del(String key){
+		Jedis jedis = null;
+		Long result = null;
+		try {
+			jedis =  jedisPool.getResource();
+			result = jedis.del(key);
+			return result;
+		} finally {
+			returnToPool(jedis);
+		}
+	}
+
+
 	/**
 	 * 判断key是否存在
 	 * */

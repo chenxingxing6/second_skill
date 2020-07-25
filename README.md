@@ -56,9 +56,75 @@ update goods set num = num - 1, version = version + 1 WHERE id= 1001 AND num > 0
 
 ---
 ### 三、实现分布式锁3种方案
-###### 3.1 Mysql 
 
+###### 3.1 基于数据库实现
+```sql
+CREATE TABLE `my_lock` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `gmt_modify` datetime DEFAULT NULL,
+  `lock_desc` varchar(255) DEFAULT '',
+  `lock_type` varchar(255) DEFAULT '',
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `UK_key` (`lock_type`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8
+```
+
+1）唯一索引 UNIQUE KEY
+当想要锁住某个方法时执行insert方法，插入一条数据，lock_type有唯一约束，可以保证多次提交只有一次成功，而成功的
+这次就可以认为其获得了锁，而执行完成后执行delete语句释放锁。
+
+缺点：
+> 1.强依赖与数据库   
+> 2.非阻塞的，获取失败直接失败  
+> 3.没有失效时间  
+> 4.非重入锁 
+
+
+---
+
+2）乐观锁
+```html
+-- 线程1查询，当前left_count为1，则有记录，当前版本号为1234
+select left_count, version from t_bonus where id = 10001 and left_count > 0
+
+-- 线程2查询，当前left_count为1，有记录，当前版本号为1234
+select left_count, version from t_bonus where id = 10001 and left_count > 0
+
+-- 线程1,更新完成后当前的version为1235，update状态为1，更新成功
+update t_bonus set version = 1235, left_count = left_count-1 where id = 10001 and version = 1234
+
+-- 线程2,更新由于当前的version为1235，udpate状态为0，更新失败，再针对相关业务做异常处理
+update t_bonus set version = 1235, left_count = left_count-1 where id = 10001 and version = 1234
+```
+
+3）悲观锁（排他锁）for update
+在查询语句后面增加for update，数据库会在查询过程中给数据库表增加排他锁。当某条记录被加上排他锁之后，其他线程无法再在该行记录上增加排他锁。
+我们可以认为获得排它锁的线程即可获得分布式锁，当获取到锁之后，可以执行方法的业务逻辑，执行完方法之后，再通过connection.commit();操作来释放锁
+
+
+---
 ###### 3.2 Redis
+1.setnx(lockkey, 1) 如果返回0，则说明占位失败；如果返回1，则说明占位成功   
+2.expire()命令对lockkey设置超时时间，为的是避免死锁问题。    
+3.执行完业务代码后，可以通过delete命令删除key。     
+```html
+ try {
+    Long isLock = redisService.setnx(key, 10, String.valueOf(user.getId()));
+    if (isLock == 1){
+        System.out.println("do business....");
+        TimeUnit.SECONDS.sleep(10);
+    }
+    System.out.println("没获取到锁.....");
+}catch (Exception e){
+    e.printStackTrace();
+}
+finally {
+    String s = redisService.get(key, String.class);
+    if (s.equals(user.getId())){
+        redisService.del(key);
+    }
+}
+```
 
 ###### 3.3 Zk
 
