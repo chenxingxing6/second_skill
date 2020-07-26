@@ -28,7 +28,7 @@ public boolean checkPath(User user, long goodsId, String path) {
 ### 二、解决超卖实现的3种方式  
 com.lxh.seckill.OverSlodTest
 
-##### 2.1 Mysql排他锁  
+##### 2.1 Mysql排他锁 
 ```sql
 update goods set num = num - 1 WHERE id = 1001 and num > 0
 ```
@@ -57,16 +57,17 @@ update goods set num = num - 1, version = version + 1 WHERE id= 1001 AND num > 0
 ---
 ### 三、实现分布式锁3种方案
 
-###### 3.1 基于数据库实现
+###### 3.1 基于数据库实现 (效率低，不推荐使用)
 ```sql
 CREATE TABLE `my_lock` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `gmt_modify` datetime DEFAULT NULL,
   `lock_desc` varchar(255) DEFAULT '',
   `lock_type` varchar(255) DEFAULT '',
+  `version` bigint(10) DEFAULT '0' COMMENT '版本号',
   PRIMARY KEY (`id`),
   UNIQUE KEY `UK_key` (`lock_type`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8
+) ENGINE=InnoDB AUTO_INCREMENT=664 DEFAULT CHARSET=utf8
 ```
 
 1）唯一索引 UNIQUE KEY
@@ -97,35 +98,84 @@ update t_bonus set version = 1235, left_count = left_count-1 where id = 10001 an
 update t_bonus set version = 1235, left_count = left_count-1 where id = 10001 and version = 1234
 ```
 
+
 3）悲观锁（排他锁）for update
 在查询语句后面增加for update，数据库会在查询过程中给数据库表增加排他锁。当某条记录被加上排他锁之后，其他线程无法再在该行记录上增加排他锁。
 我们可以认为获得排它锁的线程即可获得分布式锁，当获取到锁之后，可以执行方法的业务逻辑，执行完方法之后，再通过connection.commit();操作来释放锁
 
 
 ---
-###### 3.2 Redis
+###### 3.2 Redis （使用redisson，释放锁要小心）
 1.setnx(lockkey, 1) 如果返回0，则说明占位失败；如果返回1，则说明占位成功   
 2.expire()命令对lockkey设置超时时间，为的是避免死锁问题。    
 3.执行完业务代码后，可以通过delete命令删除key。     
 ```html
- try {
-    Long isLock = redisService.setnx(key, 10, String.valueOf(user.getId()));
-    if (isLock == 1){
-        System.out.println("do business....");
-        TimeUnit.SECONDS.sleep(10);
+ private void handler_redis(User user, Long goodId){
+    String key = "MY_KEY_"+goodId;
+    try {
+        boolean lock = lock4.getLock(key, String.valueOf(user.getId()), 10);
+        if (lock){
+            System.out.println("获取到锁....");
+        }else {
+            System.out.println("没获取到锁");
+        }
+    }finally {
+        lock4.unLock(key, String.valueOf(user.getId()));
     }
-    System.out.println("没获取到锁.....");
-}catch (Exception e){
-    e.printStackTrace();
+    }
+```
+
+---
+###### 3.3 Zk （临时节点，效率高）
+原理：使用zookeeper创建临时序列节点来实现分布式锁，适用于顺序执行的程序，大体思路就是创建临时序列节点，
+找出最小的序列节点，获取分布式锁，程序执行完成之后此序列节点消失，通过watch来监控节点的变化，从剩下的
+节点的找到最小的序列节点，获取分布式锁，执行相应处理，依次类推……
+
+```xml
+<dependency>
+    <groupId>org.apache.curator</groupId>
+    <artifactId>curator-recipes</artifactId>
+    <version>2.8.0</version>
+</dependency>
+```
+
+```html
+/**
+ * 获取分布式锁
+ */
+public Boolean tryLock(String path) {
+    String keyPath = "/" + ROOT_PATH_LOCK + "/" + path;
+    try {
+        client.create()
+        .creatingParentsIfNeeded()
+        .withMode(CreateMode.EPHEMERAL)
+        .withACL(ZooDefs.Ids.OPEN_ACL_UNSAFE)
+        .forPath(keyPath);
+        System.out.println("success to acquire lock for path " + keyPath);
+        return true;
+    } catch (Exception e) {
+        System.out.println("failed to acquire lock for path");
+        return false;
+    }
 }
-finally {
-    String s = redisService.get(key, String.class);
-    if (s.equals(user.getId())){
-        redisService.del(key);
+
+/**
+ * 释放分布式锁
+ */
+public boolean unLock(String path) {
+    try {
+        String keyPath = "/" + ROOT_PATH_LOCK + "/" + path;
+        if (client.checkExists().forPath(keyPath) != null) {
+            client.delete().forPath(keyPath);
+        }
+    } catch (Exception e) {
+        System.out.println("failed to release lock");
+        return false;
     }
+    return true;
 }
 ```
 
-###### 3.3 Zk
+---
 
 
