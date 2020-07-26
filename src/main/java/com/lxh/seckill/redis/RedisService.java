@@ -10,6 +10,7 @@ import redis.clients.jedis.JedisPool;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 
 @Service
@@ -17,6 +18,16 @@ public class RedisService {
 	@Autowired
 	JedisPool jedisPool;
 	private static final String STATUS_CODE = "OK";
+
+	public Object eval(String script, List<String> keys, List<String> args){
+		Jedis jedis = null;
+		try {
+			jedis =  jedisPool.getResource();
+			return jedis.eval(script, keys, args);
+		}finally {
+			returnToPool(jedis);
+		}
+	}
 
 	/**
 	 * 获取当个对象

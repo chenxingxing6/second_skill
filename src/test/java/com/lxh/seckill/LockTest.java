@@ -1,5 +1,6 @@
 package com.lxh.seckill;
 
+import com.google.common.collect.Lists;
 import com.lxh.seckill.common.LockTypeEnum;
 import com.lxh.seckill.dao.GoodsMapper;
 import com.lxh.seckill.entity.MyLock;
@@ -66,6 +67,11 @@ public class LockTest {
             }).start();
         }
         Thread.sleep(1000* 10);
+    }
+
+    @Test
+    public void test02(){
+        lock4.eval(Lists.newArrayList("lxh"), Lists.newArrayList("1"));
     }
 
 
