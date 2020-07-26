@@ -1,0 +1,110 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.lxh.seckill.dao.MyLockMapper">
+  <resultMap id="BaseResultMap" type="com.lxh.seckill.entity.MyLock">
+    <id column="id" property="id" jdbcType="INTEGER" />
+    <result column="gmt_modify" property="gmtModify" jdbcType="TIMESTAMP" />
+    <result column="lock_desc" property="lockDesc" jdbcType="VARCHAR" />
+    <result column="lock_type" property="lockType" jdbcType="VARCHAR" />
+    <result column="version" property="version" jdbcType="BIGINT" />
+  </resultMap>
+  <sql id="Base_Column_List">
+    id, gmt_modify, lock_desc, lock_type, version
+  </sql>
+  <select id="selectByPrimaryKey" parameterType="java.lang.Integer" resultMap="BaseResultMap">
+    select
+    <include refid="Base_Column_List" />
+    from my_lock
+    where id = #{id,jdbcType=INTEGER}
+  </select>
+  <select id="selectByXLock" parameterType="java.lang.String" resultMap="BaseResultMap">
+    select
+    <include refid="Base_Column_List" />
+    from my_lock
+    where lock_type = #{lockType,jdbcType=VARCHAR} for update
+  </select>
+  <select id="selectByLockType" parameterType="java.lang.String" resultMap="BaseResultMap">
+    select
+    <include refid="Base_Column_List" />
+    from my_lock
+    where lock_type = #{lockType,jdbcType=VARCHAR}
+  </select>
+  <delete id="deleteByPrimaryKey" parameterType="java.lang.Integer">
+    delete from my_lock
+    where id = #{id,jdbcType=INTEGER}
+  </delete>
+  <delete id="deleteByLockType" parameterType="java.lang.String">
+    delete from my_lock
+    where lock_type = #{lockType,jdbcType=VARCHAR}
+  </delete>
+  <insert id="insert" parameterType="com.lxh.seckill.entity.MyLock">
+    insert into my_lock (id, gmt_modify, lock_desc,
+      lock_type, version)
+    values (#{id,jdbcType=INTEGER}, #{gmtModify,jdbcType=TIMESTAMP}, #{lockDesc,jdbcType=VARCHAR},
+      #{lockType,jdbcType=VARCHAR}, #{version,jdbcType=BIGINT})
+  </insert>
+  <insert id="insertSelective" parameterType="com.lxh.seckill.entity.MyLock">
+    insert into my_lock
+    <trim prefix="(" suffix=")" suffixOverrides=",">
+      <if test="id != null">
+        id,
+      </if>
+      <if test="gmtModify != null">
+        gmt_modify,
+      </if>
+      <if test="lockDesc != null">
+        lock_desc,
+      </if>
+      <if test="lockType != null">
+        lock_type,
+      </if>
+      <if test="version != null">
+        version,
+      </if>
+    </trim>
+    <trim prefix="values (" suffix=")" suffixOverrides=",">
+      <if test="id != null">
+        #{id,jdbcType=INTEGER},
+      </if>
+      <if test="gmtModify != null">
+        #{gmtModify,jdbcType=TIMESTAMP},
+      </if>
+      <if test="lockDesc != null">
+        #{lockDesc,jdbcType=VARCHAR},
+      </if>
+      <if test="lockType != null">
+        #{lockType,jdbcType=VARCHAR},
+      </if>
+      <if test="version != null">
+        #{version,jdbcType=BIGINT},
+      </if>
+    </trim>
+  </insert>
+  <update id="updateByPrimaryKeySelective" parameterType="com.lxh.seckill.entity.MyLock">
+    update my_lock
+    <set>
+      <if test="gmtModify != null">
+        gmt_modify = #{gmtModify,jdbcType=TIMESTAMP},
+      </if>
+      <if test="lockDesc != null">
+        lock_desc = #{lockDesc,jdbcType=VARCHAR},
+      </if>
+      <if test="lockType != null">
+        lock_type = #{lockType,jdbcType=VARCHAR},
+      </if>
+      version = version + 1
+    </set>
+    where id = #{id,jdbcType=INTEGER}
+    <if test="version != null">
+      and version = #{version,jdbcType=BIGINT}
+    </if>
+  </update>
+  <update id="updateByPrimaryKey" parameterType="com.lxh.seckill.entity.MyLock">
+    update my_lock
+    set gmt_modify = #{gmtModify,jdbcType=TIMESTAMP},
+      lock_desc = #{lockDesc,jdbcType=VARCHAR},
+      lock_type = #{lockType,jdbcType=VARCHAR},
+      version = #{version,jdbcType=BIGINT}
+    where id = #{id,jdbcType=INTEGER}
+  </update>
+</mapper>
