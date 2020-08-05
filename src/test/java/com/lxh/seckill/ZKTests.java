@@ -17,25 +17,18 @@ import java.util.List;
 @Slf4j
 @RunWith(SpringRunner.class)
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.DEFINED_PORT)
-public class SeckillApplicationTests {
-	@Autowired
-	DataSource dataSource;
+public class ZKTests {
 	@Autowired
 	GoodsMapper goodsMapper;
 
 	@Test
-	public void contextLoads() throws SQLException {
-		System.out.println(dataSource.getClass());
-		Connection connection = dataSource.getConnection();
-		System.out.println(connection);
-		connection.close();
+	public void test01() throws SQLException {
 
 	}
 
 	@Test
-	public void test01(){
+	public void test02(){
 		List<GoodsBo> goodsBos = goodsMapper.selectAllGoodes();
-
 		for (GoodsBo goodsBo : goodsBos){
 			log.info(goodsBo+"");
 		}
