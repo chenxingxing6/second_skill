@@ -1,11 +1,5 @@
 package com.lxh.seckill;
 
-import org.hyperic.sigar.Mem;
-import org.hyperic.sigar.Sigar;
-
-import java.util.HashMap;
-import java.util.concurrent.TimeUnit;
-
 /**
  * created by lanxinghua@2dfire.com on 2020/8/5
  */
@@ -21,6 +15,7 @@ public class LxhTest {
 //            System.out.println(l);
 //        }
         byte[] bytes = "https://blog.csdn.net/wgw335363240/article/details/8878644".getBytes();
+        System.out.println(bytes.length);
         System.out.println((bytes.length * 10000000000L) / 1024 /1024 / 1024 + "MB");
     }
 }
