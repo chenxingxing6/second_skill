@@ -1,36 +1,61 @@
-## ZK学习笔记
+## Hutool学习笔记
 
 ---
-###### 1.监听客户端
+###### 1.构建树结构
 ```html
-发生改变：["a"]
-15:52:37.207 [main-SendThread(10.1.21.202:2181)] DEBUG org.apache.zookeeper.ClientCnxn - Got WatchedEvent state:SyncConnected type:NodeChildrenChanged path:/lxh for sessionid 0x900000039bd805e
-watchEvent----->path:/lxh
-发生改变：["a","b"]
-15:53:23.737 [main-SendThread(10.1.21.202:2181)] DEBUG org.apache.zookeeper.ClientCnxn - Got WatchedEvent state:SyncConnected type:NodeChildrenChanged path:/lxh for sessionid 0x900000039bd805e
-watchEvent----->path:/lxh
-发生改变：["a","b","c"]
-15:54:07.525 [main-SendThread(10.1.21.202:2181)] DEBUG org.apache.zookeeper.ClientCnxn - Got WatchedEvent state:SyncConnected type:NodeChildrenChanged path:/lxh for sessionid 0x900000039bd805e
-watchEvent----->path:/lxh
-15:54:07.528 [main-SendThread(10.1.21.202:2181)] DEBUG org.apache.zookeeper.ClientCnxn - Reading reply sessionid:0x900000039bd805e, packet:: clientPath:null serverPath:null finished:false header:: 5,8  replyHeader:: 5,5575399976837,0  request:: '/lxh,T  response:: v{'a,'b} 
-发生改变：["a","b"]
+    List<TreeNode<String>> nodeList = CollUtil.newArrayList();
+        nodeList.add(new TreeNode<>("1", "0", "系统管理", 5));
+        nodeList.add(new TreeNode<>("11", "1", "用户管理", 222222));
+        nodeList.add(new TreeNode<>("111", "11", "用户添加", 0));
+        nodeList.add(new TreeNode<>("2", "0", "店铺管理", 1));
+        nodeList.add(new TreeNode<>("21", "2", "商品管理", 44));
+        nodeList.add(new TreeNode<>("221", "2", "商品管理2", 2));
+        List<Tree<String>> build = TreeUtil.build(nodeList, "0");
+        System.out.println(JSON.toJSONString(build));
 ```
 
-```html
-// 创建watch实例
-private static Watcher watcher = new Watcher() {
-    @Override
-    public void process(WatchedEvent watchedEvent) {
-        System.out.println("watchEvent----->path:" + watchedEvent.getPath());
-        try {
-            // 设置true表示监听此事件，zk就会在监听器列表注册该事件
-            List<String> children = zk.getChildren("/lxh", true);
-            System.out.println("发生改变："+JSON.toJSONString(children));
-        }catch (Exception e){
-            e.printStackTrace();
-        }
+---
+
+```json
+[
+    {
+        "id":"2",
+        "parentId":"0",
+        "weight":1,
+        "name":"店铺管理",
+        "children":[
+            {
+                "id":"221",
+                "parentId":"2",
+                "weight":2,
+                "name":"商品管理2"
+            },
+            {
+                "id":"21",
+                "parentId":"2",
+                "weight":44,
+                "name":"商品管理"
+            }
+        ]
     }
-};
+]
+```
+
+---
+###### 2.布隆过滤器
+```html
+public class BloomFilterTest {
+    public static void main(String[] args) {
+        int size = 1000;
+        BitMapBloomFilter bitMapBloomFilter = new BitMapBloomFilter(size);
+        for (int i = 0; i < size; i++) {
+            bitMapBloomFilter.add(i + "");
+        }
+        boolean lxh = bitMapBloomFilter.contains("lxh");
+        System.out.println(lxh);
+    }
+}
+
 ```
 
 ---

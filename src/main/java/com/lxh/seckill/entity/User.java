@@ -2,6 +2,7 @@ package com.lxh.seckill.entity;
 
 import lombok.*;
 
+import java.io.Serializable;
 import java.util.Date;
 
 @Setter
@@ -9,7 +10,7 @@ import java.util.Date;
 @ToString
 @NoArgsConstructor
 @AllArgsConstructor
-public class User {
+public class User implements Serializable {
 	private int id;
 	private String userName;
 	private String phone;
