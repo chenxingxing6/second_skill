@@ -1,5 +1,7 @@
 package com.lxh.hutool.excel;
 
+import cn.hutool.core.lang.Singleton;
+import cn.hutool.core.lang.Validator;
 import cn.hutool.poi.excel.BigExcelWriter;
 import cn.hutool.poi.excel.ExcelReader;
 import cn.hutool.poi.excel.ExcelUtil;
