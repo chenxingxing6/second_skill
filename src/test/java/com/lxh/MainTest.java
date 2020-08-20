@@ -17,6 +17,8 @@ import org.springframework.test.context.junit4.SpringRunner;
 import javax.annotation.Resource;
 import java.util.List;
 
+import static org.mockito.ArgumentMatchers.anyString;
+
 /**
  * created by lanxinghua@2dfire.com on 2020/8/20
  */
@@ -55,5 +57,12 @@ public class MainTest {
 
         List<User> users2 = userServiceImpl.selectAll();
         System.out.println(users2.size());
+    }
+
+    @Test
+    public void test02(){
+        Mockito.when(userMapper.selectByPhoneAndPassword(anyString(), anyString())).thenReturn(new User());
+        User user = userMapper.selectByPhoneAndPassword("", "");
+        System.out.println(user.toString());
     }
 }
